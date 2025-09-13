@@ -1,6 +1,7 @@
-import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useEffect, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 function Logo(){
     return(
         <Image
@@ -15,6 +16,7 @@ export default function Onboarding (){
     const [email,setEmail]=useState('');
     const [isFormValid, setIsFormValid] = useState(false);
     const [errors, setErrors] = useState({});
+    const { onOnboardingComplete } = useRoute().params || {};
     useEffect(()=>{
         const isValid=text.trim()!=='' || email.trim()!=='';
         setIsFormValid(isValid);
@@ -36,9 +38,14 @@ export default function Onboarding (){
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-    const handleSubmit = () => {
+    const handleSubmit =async () => {
         if (validateForm()) {
-          Alert.alert('Success', 'Form submitted successfully!');
+            try{
+                await AsyncStorage.setItem('onboardingCompleted', 'true');
+                onOnboardingComplete();
+            }catch(error){
+                console.log('Onboarding not complete');
+            }
         } else {
           Alert.alert('Error', 'Please fill in all required fields');
         }
@@ -76,7 +83,6 @@ export default function Onboarding (){
                     pressed && styles.buttonPressed,
                     !isFormValid && styles.buttonDisabled  
                 ]}
-                // onPress={handlePress}
                 onPressIn={() => console.log('Press started')}
                 onPressOut={() => console.log('Press ended')}
                 onLongPress={() => console.log('Long pressed')}
@@ -86,6 +92,7 @@ export default function Onboarding (){
                 delayLongPress={500}
                 pressRetentionOffset={{top: 20, left: 20, right: 20, bottom: 20}}
                 unstable_pressDelay={0}   
+                onPress={handleSubmit}
                 >
                 <Text style={styles.buttonText}>Next</Text>
                 </Pressable>
