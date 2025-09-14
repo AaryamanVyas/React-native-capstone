@@ -92,7 +92,7 @@ export default function Onboarding (){
                 delayLongPress={500}
                 pressRetentionOffset={{top: 20, left: 20, right: 20, bottom: 20}}
                 unstable_pressDelay={0}   
-                onPress={handleSubmit}
+                onPress={()=>navigation.navigate('Home')}
                 >
                 <Text style={styles.buttonText}>Next</Text>
                 </Pressable>
