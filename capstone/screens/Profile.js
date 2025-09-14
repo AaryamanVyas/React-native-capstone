@@ -1,8 +1,10 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import Checkbox from 'expo-checkbox';
-import { useState } from "react";
+import * as ImagePicker from 'expo-image-picker';
+import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-
+import { MaskedTextInput } from "react-native-mask-text";
 function Logo(){
     return(
         <Image
@@ -22,33 +24,163 @@ export default function Profile(){
     const [passwordChanges, setPasswordChanges] = useState(false);
     const [specialOffers, setSpecialOffers] = useState(false);
     const [newsletter, setNewsletter] = useState(false);
+    const [profileImage,setProfileImage]=useState(null);
     
+    // Phone number validation
+    const validatePhoneNumber = (phone) => {
+        const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
+        return phoneRegex.test(phone);
+    };
+    
+    useEffect(() => {
+        (async () => {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                alert('Sorry, we need camera roll permissions to make this work!');
+            }
+        })();
+    }, []);
+
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setProfileImage(result.assets[0].uri);
+        }
+    };
+
+    const getInitials = () => {
+        const firstInitial = firstName.charAt(0).toUpperCase();
+        const lastInitial = lastName.charAt(0).toUpperCase();
+        return firstInitial + lastInitial;
+    };
+
+    useEffect(()=>{
+        const loadUserData=async()=>{
+            try{
+                const userDataString=await AsyncStorage.getItem('userData');
+                if(userDataString){
+                    const userData=JSON.parse(userDataString);
+                    setFirstName(userData.firstName || '');
+                    setEmail(userData.email || '');
+                    setLastName(userData.lastName || '');
+                    setPhoneNo(userData.phoneNumber || '');
+                    setProfileImage(userData.profileImage || null); // Add this line
+                    setOrderStatus(userData.orderStatus || false);
+                    setPasswordChanges(userData.passwordChanges || false);
+                    setSpecialOffers(userData.specialOffers || false);
+                    setNewsletter(userData.newsletter || false);
+                }
+            }catch(error){
+                console.log('Error loading user data:',error);
+            }
+        }
+        loadUserData();
+    },[])
+
+    const saveUserData = async () => {
+        try {
+            const userData = {
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                email: email.trim(),
+                phoneNumber: phoneno,
+                profileImage: profileImage,
+                orderStatus: orderStatus,
+                passwordChanges: passwordChanges,
+                specialOffers: specialOffers,
+                newsletter: newsletter
+            };
+            
+            await AsyncStorage.setItem('userData', JSON.stringify(userData));
+            alert('Profile saved successfully!');
+        } catch (error) {
+            console.log('Error saving user data:', error);
+            alert('Error saving profile');
+        }
+    };
+
+    const discardChanges = async () => {
+        try {
+            const userDataString = await AsyncStorage.getItem('userData');
+            if (userDataString) {
+                const userData = JSON.parse(userDataString);
+                setFirstName(userData.firstName || '');
+                setEmail(userData.email || '');
+                setLastName(userData.lastName || '');
+                setPhoneNo(userData.phoneNumber || '');
+                setProfileImage(userData.profileImage || null);
+                setOrderStatus(userData.orderStatus || false);
+                setPasswordChanges(userData.passwordChanges || false);
+                setSpecialOffers(userData.specialOffers || false);
+                setNewsletter(userData.newsletter || false);
+            }
+        } catch (error) {
+            console.log('Error loading user data:', error);
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await AsyncStorage.multiRemove([
+                'onboardingCompleted',
+                'userData'
+            ]);
+            
+            // Navigate to Onboarding
+            navigation.navigate('Onboarding');
+        } catch (error) {
+            console.log('Error clearing data:', error);
+        }
+    };
+
     return(
         <View style={styles.container}>
             {/* Header with back button, logo, and profile picture */}
             <View style={styles.header}>
                 <Pressable 
                     style={styles.backButton}
-                    onPress={() => navigation.navigate('Home')}
+                    onPress={() => navigation.goBack()}
                 >
                     <Text style={styles.backButtonText}>←</Text>
                 </Pressable>
                 <Logo/>
-                <View style={styles.profilePicture}>
-                    <Text style={styles.profilePictureText}>👤</Text>
-                </View>
+                <Pressable onPress={pickImage}>
+                    <View style={styles.profilePicture}>
+                        {profileImage ? (
+                            <Image source={{ uri: profileImage }} style={styles.headerProfileImage} />
+                        ) : (
+                            <Text style={styles.profilePictureText}>
+                                {firstName && lastName ? getInitials() : '👤'}
+                            </Text>
+                        )}
+                    </View>
+                </Pressable>
             </View>
 
             {/* Avatar section with Change and Remove buttons */}
             <View style={styles.avatarSection}>
-                <View style={styles.profileImagePlaceholder}>
-                    <Text style={styles.profileImageText}>��</Text>
-                </View>
+                <Pressable onPress={pickImage}>
+                    <View style={styles.profileImagePlaceholder}>
+                        {profileImage ? (
+                            <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                        ) : (
+                            <Text style={styles.profileImageText}>
+                                {firstName && lastName ? getInitials() : '👤'}
+                            </Text>
+                        )}
+                    </View>
+                </Pressable>
                 <View style={styles.avatarButtons}>
-                    <Pressable style={styles.changeButton}>
+                    <Pressable style={styles.changeButton} onPress={pickImage}>
                         <Text style={styles.changeButtonText}>Change</Text>
                     </Pressable>
-                    <Pressable style={styles.removeButton}>
+                    <Pressable style={styles.removeButton} onPress={() => setProfileImage(null)}>
                         <Text style={styles.removeButtonText}>Remove</Text>
                     </Pressable>
                 </View>
@@ -95,14 +227,14 @@ export default function Profile(){
                 
                 <View style={styles.inputGroup}>
                     <Text style={styles.labelText}>Phone number</Text>
-                    <TextInput
+                    <MaskedTextInput
                         style={styles.input}
-                        placeholder="Enter phone number"
+                        placeholder="(555) 123-4567"
                         value={phoneno}
                         onChangeText={setPhoneNo}
+                        mask="(999) 999-9999"
                         keyboardType="numeric"
                         returnKeyType="done"
-                        maxLength={10}
                     />    
                 </View>
             </View>
@@ -152,7 +284,7 @@ export default function Profile(){
             <View style={styles.logoutSection}>
                 <Pressable
                     style={styles.logoutButton}
-                    onPress={() => navigation.navigate('Onboarding')}
+                    onPress={handleLogout}
                 >
                     <Text style={styles.logoutButtonText}>Log out</Text>
                 </Pressable>
@@ -160,10 +292,10 @@ export default function Profile(){
 
             {/* Action buttons */}
             <View style={styles.actionButtons}>
-                <Pressable style={styles.discardButton}>
+                <Pressable style={styles.discardButton} onPress={discardChanges}>
                     <Text style={styles.discardButtonText}>Discard changes</Text>
                 </Pressable>
-                <Pressable style={styles.saveButton}>
+                <Pressable style={styles.saveButton} onPress={saveUserData}>
                     <Text style={styles.saveButtonText}>Save changes</Text>
                 </Pressable>
             </View>
@@ -218,8 +350,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center'
     },
+    headerProfileImage: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+    },
     profilePictureText: {
-        fontSize: 20
+        fontSize: 16,
+        color: '#495e57',
+        fontWeight: '600'
     },
     
     // Avatar section styles
@@ -367,5 +506,10 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 14,
         fontWeight: '600'
+    },
+    profileImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
     }
 })

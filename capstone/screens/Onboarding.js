@@ -10,6 +10,8 @@ function Logo(){
         />
     )
 }
+// ... existing code ...
+
 export default function Onboarding (){
     const navigation=useNavigation();
     const [text,setText]=useState('');
@@ -17,13 +19,12 @@ export default function Onboarding (){
     const [isFormValid, setIsFormValid] = useState(false);
     const [errors, setErrors] = useState({});
     const { onOnboardingComplete } = useRoute().params || {};
+    
     useEffect(()=>{
-        const isValid=text.trim()!=='' || email.trim()!=='';
+        const isValid=text.trim()!=='' && email.trim()!==''; // Changed OR to AND
         setIsFormValid(isValid);
     },[text,email]);
-    const handleNext=()=>{
-        navigation.navigate('Home');
-    }
+    
     const validateForm = () => {
         const newErrors = {};
         
@@ -38,10 +39,15 @@ export default function Onboarding (){
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-    const handleSubmit =async () => {
+    
+    const handleSubmit = async () => {
         if (validateForm()) {
             try{
                 await AsyncStorage.setItem('onboardingCompleted', 'true');
+                await AsyncStorage.setItem('userData', JSON.stringify({
+                    firstName: text.trim(),
+                    email: email.trim()
+                }));
                 onOnboardingComplete();
             }catch(error){
                 console.log('Onboarding not complete');
@@ -49,12 +55,13 @@ export default function Onboarding (){
         } else {
           Alert.alert('Error', 'Please fill in all required fields');
         }
-      };
+        navigation.navigate('Home');
+    };
+
     return(
         <View style={styles.container}>
             <View style={styles.header}>
                 <Logo/>
-                
             </View>
             <Text style={styles.textinp}>Let us get to know you!</Text>
             <View>
@@ -83,21 +90,12 @@ export default function Onboarding (){
                     pressed && styles.buttonPressed,
                     !isFormValid && styles.buttonDisabled  
                 ]}
-                onPressIn={() => console.log('Press started')}
-                onPressOut={() => console.log('Press ended')}
-                onLongPress={() => console.log('Long pressed')}
-                android_ripple={{color: '#DDD', borderless: false}} 
                 disabled={!isFormValid}
-                hitSlop={10}              
-                delayLongPress={500}
-                pressRetentionOffset={{top: 20, left: 20, right: 20, bottom: 20}}
-                unstable_pressDelay={0}   
-                onPress={()=>navigation.navigate('Home')}
+                onPress={handleSubmit} // Changed from handleNext to handleSubmit
                 >
                 <Text style={styles.buttonText}>Next</Text>
                 </Pressable>
             </View>
-            
         </View>
     )
 }
