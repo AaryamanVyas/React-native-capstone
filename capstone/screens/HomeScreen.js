@@ -33,7 +33,7 @@ function groupBySection(items) {
 }
 
 export default function HomeScreen(){
-    const navigation = useNavigation();
+    const navigation = useNavigation();  
 
     const [profile, setProfile] = useState({
         firstName: '',
@@ -229,9 +229,9 @@ export default function HomeScreen(){
                     accessible={true}
                     accessibilityLabel={'Little Lemon Logo'}
                 />
-                <Pressable
+            <Pressable
                     style={styles.avatar}
-                    onPress={() => navigation.navigate('Profile')}
+                onPress={() => navigation.navigate('Profile')}  
                     accessibilityRole="button"
                     accessibilityLabel="Open Profile"
                 >
@@ -245,8 +245,8 @@ export default function HomeScreen(){
                             </Text>
                         </View>
                     )}
-                </Pressable>
-            </View>
+            </Pressable>
+        </View>
 
             {/* Hero */}
             <View style={styles.heroSection}>
