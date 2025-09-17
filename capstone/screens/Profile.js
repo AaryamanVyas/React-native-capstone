@@ -104,7 +104,6 @@ export default function Profile(){
             alert('Error saving profile');
         }
     };
-
     const discardChanges = async () => {
         try {
             const userDataString = await AsyncStorage.getItem('userData');
